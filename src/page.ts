@@ -7,6 +7,7 @@ export function renderHome(links: Link[], baseUrl: string, error?: string): stri
       return `<li>
         <a class="short" href="/${escape(link.code)}">${escape(short)}</a>
         <span class="target">${escape(link.url)}</span>
+        <span class="clicks">${clickLabel(link.clicks)}</span>
       </li>`;
     })
     .join('');
@@ -28,6 +29,7 @@ export function renderHome(links: Link[], baseUrl: string, error?: string): stri
     ul { list-style: none; padding: 0; margin-top: 32px; }
     li { display: flex; flex-direction: column; padding: 12px 0; border-top: 1px solid #e7e5e4; }
     .short { font-weight: 600; color: #c2410c; }
+    .clicks { color: #57534e; font-size: 14px; }
     .target { color: #78716c; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   </style>
 </head>
@@ -42,6 +44,10 @@ export function renderHome(links: Link[], baseUrl: string, error?: string): stri
   <ul>${rows}</ul>
 </body>
 </html>`;
+}
+
+function clickLabel(clicks: number): string {
+  return clicks === 1 ? '1 click' : `${clicks} clicks`;
 }
 
 function escape(text: string): string {

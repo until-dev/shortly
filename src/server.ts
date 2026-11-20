@@ -35,6 +35,7 @@ export function createApp(store: Store, baseUrl: string): Server {
     if (req.method === 'GET') {
       const link = store.find(url.pathname.slice(1));
       if (link) {
+        store.recordClick(link.code);
         res.writeHead(302, { Location: link.url });
         return res.end();
       }

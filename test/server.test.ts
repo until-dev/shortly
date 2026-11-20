@@ -63,3 +63,60 @@ test('returns 404 for an unknown code', async (t) => {
   const res = await fetch(`${base}/nope42`, { redirect: 'manual' });
   assert.equal(res.status, 404);
 });
+
+async function shorten(base: string, url: string): Promise<string> {
+  const res = await fetch(`${base}/links`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  return (await res.json()).code;
+}
+
+async function links(base: string): Promise<{ code: string; clicks: number }[]> {
+  return (await fetch(`${base}/api/links`)).json();
+}
+
+test('counts each time a link is followed', async (t) => {
+  const { base } = await start(t);
+  const code = await shorten(base, 'https://example.com/counted');
+
+  await fetch(`${base}/${code}`, { redirect: 'manual' });
+  await fetch(`${base}/${code}`, { redirect: 'manual' });
+
+  assert.equal((await links(base)).find((link) => link.code === code)?.clicks, 2);
+});
+
+test('an unknown code counts nothing', async (t) => {
+  const { base } = await start(t);
+  const code = await shorten(base, 'https://example.com/untouched');
+
+  await fetch(`${base}/nope42`, { redirect: 'manual' });
+
+  assert.equal((await links(base))[0].code, code);
+  assert.equal((await links(base))[0].clicks, 0);
+});
+
+test('lists the most clicked link first', async (t) => {
+  const { base } = await start(t);
+  const quiet = await shorten(base, 'https://example.com/quiet');
+  const popular = await shorten(base, 'https://example.com/popular');
+  await shorten(base, 'https://example.com/newest');
+
+  await fetch(`${base}/${popular}`, { redirect: 'manual' });
+  await fetch(`${base}/${popular}`, { redirect: 'manual' });
+  await fetch(`${base}/${quiet}`, { redirect: 'manual' });
+
+  assert.deepEqual(
+    (await links(base)).map((link) => link.code).slice(0, 2),
+    [popular, quiet],
+  );
+});
+
+test('the home page shows each link\'s clicks', async (t) => {
+  const { base } = await start(t);
+  const code = await shorten(base, 'https://example.com/shown');
+  await fetch(`${base}/${code}`, { redirect: 'manual' });
+
+  assert.match(await (await fetch(`${base}/`)).text(), /1 click</);
+});
